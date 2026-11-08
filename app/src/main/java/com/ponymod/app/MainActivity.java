@@ -36,6 +36,7 @@ import java.io.PrintWriter;
 public class MainActivity extends Activity {
     WebView w;
     Player player;
+    Skins skins;
     Store store;
     private TextView fab;
     private Runnable pendingPerm;
@@ -91,6 +92,7 @@ public class MainActivity extends Activity {
         store = new Store(this);
         player = new Player(this);
         player.onChange = this::pushNow;
+        skins = new Skins(this);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         FrameLayout root = new FrameLayout(this);

@@ -222,3 +222,78 @@ body.pm-open #pm-fab{display:none!important}
     }).observe(ov, { attributes: true, attributeFilter: ['class'] });
   }
 })();
+
+(function () {
+  if (document.getElementById('pm-css3')) return;
+  var st = document.createElement('style');
+  st.id = 'pm-css3';
+  st.textContent = `
+.top-menu-button,.game-button,.chat-open-button,.chat-log-tab,.chat-log-toggle{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.pm-cap #pm-fab,body.pm-cap #pm-ov{display:none!important}
+#pm-ko{white-space:pre-wrap;user-select:text;-webkit-user-select:text;overflow:auto;flex:1;min-height:60px;
+  font-weight:700;font-size:14px;line-height:1.35}
+.pm-err{color:#ffb4a8;font-size:13px}
+`;
+  document.head.appendChild(st);
+
+  var ov = document.getElementById('pm-ov');
+  if (!ov) return;
+  var $ = function (id) { return document.getElementById(id); };
+
+  var pane = document.createElement('div');
+  pane.id = 'pm-k';
+  pane.className = 'pm-pane';
+  pane.style.display = 'none';
+  pane.innerHTML = `
+    <button class="pm-b on" id="pm-kc">Capturar skin objetivo</button>
+    <button class="pm-b" id="pm-km">Comparar con la mía</button>
+    <div class="pm-dim">Pon al poni en el centro de la pantalla y haz zoom. El panel se oculta un momento para tomar la captura y se envía a Gemini con tu clave.</div>
+    <div id="pm-kst" class="pm-dim"></div>
+    <button class="pm-b" id="pm-kr" style="display:none">Reintentar</button>
+    <div id="pm-ko"></div>`;
+  $('pm-s').parentNode.appendChild(pane);
+
+  var kt = document.createElement('button');
+  kt.className = 'pm-b';
+  kt.id = 'pm-tk';
+  kt.textContent = 'Skins';
+  $('pm-tabs').insertBefore(kt, $('pm-ts'));
+
+  function showK() {
+    $('pm-m').style.display = 'none';
+    $('pm-s').style.display = 'none';
+    pane.style.display = 'flex';
+    $('pm-tm').className = 'pm-b';
+    $('pm-ts').className = 'pm-b';
+    kt.className = 'pm-b on';
+  }
+  function hideK() { pane.style.display = 'none'; kt.className = 'pm-b'; }
+  kt.onclick = showK;
+  $('pm-tm').addEventListener('click', hideK);
+  $('pm-ts').addEventListener('click', hideK);
+
+  $('pm-kc').onclick = function () { PM.capture('target'); };
+  $('pm-km').onclick = function () { PM.capture('mine'); };
+  $('pm-kr').onclick = function () { PM.retry(); };
+
+  window.pmCap = function (on) {
+    document.body.classList.toggle('pm-cap', !!on);
+    if (!on) { ov.classList.add('open'); showK(); }
+  };
+  window.pmSkinBusy = function (s) {
+    $('pm-kst').className = 'pm-dim';
+    $('pm-kst').textContent = s;
+    $('pm-kr').style.display = 'none';
+  };
+  window.pmSkinErr = function (s) {
+    $('pm-kst').className = 'pm-err';
+    $('pm-kst').textContent = '⚠ ' + s;
+    $('pm-kr').style.display = 'block';
+  };
+  window.pmSkinOut = function (t) {
+    $('pm-kst').textContent = '';
+    $('pm-kr').style.display = 'none';
+    $('pm-ko').textContent = String(t).replace(/\*\*/g, '').replace(/^\s*[\*\-]\s+/gm, '• ');
+  };
+})();
