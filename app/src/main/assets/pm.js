@@ -184,3 +184,41 @@
 
   try { PM.hideFab(); } catch (e) {}
 })();
+
+(function () {
+  if (document.getElementById('pm-css2')) return;
+  var s = document.createElement('style');
+  s.id = 'pm-css2';
+  s.textContent = `
+.friends-box,.settings-box,.status-box,.notification-list,.action-list,.emoji-picker-box,.minimap-box,
+.chat-log,.chat-box,.chat-log-tabs-container,.chat-textarea-wrap,.minimap-buttons-background{
+  -webkit-backdrop-filter:blur(16px) saturate(1.3)!important;backdrop-filter:blur(16px) saturate(1.3)!important}
+
+.friends-box,.settings-box,.status-box,.notification-list,.action-list,.emoji-picker-box{
+  background-color:rgba(18,18,28,.38)!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:20px!important}
+
+.friends-box *:not(.rounded-circle):not(.pixelart):not(canvas):not(img):not(svg):not(path):not(.form-control),
+.notification-list *:not(.rounded-circle):not(.pixelart):not(canvas):not(img):not(svg):not(path):not(.form-control),
+.status-box *:not(.rounded-circle):not(.pixelart):not(canvas):not(img):not(svg):not(path):not(.form-control){
+  background-color:transparent!important;color:#fff!important;font-weight:800!important;border-color:rgba(255,255,255,.14)!important}
+
+.friends-box .form-control,.notification-list .form-control,.status-box .form-control{
+  background-color:rgba(255,255,255,.14)!important;color:#fff!important;border:1px solid rgba(255,255,255,.25)!important}
+.friends-box .form-control::placeholder{color:rgba(255,255,255,.75)!important}
+.friends-box li,.friends-box .list-group-item{border-bottom:1px solid rgba(255,255,255,.12)!important}
+
+.top-menu-button,.game-button,.chat-open-button,.chat-log-tab,.chat-log-toggle{
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.chat-log,.chat-box{background-color:rgba(18,18,28,.3)!important}
+.chat-textarea{background-color:rgba(255,255,255,.14)!important;color:#fff!important}
+
+body.pm-open #pm-fab{display:none!important}
+`;
+  document.head.appendChild(s);
+  var ov = document.getElementById('pm-ov');
+  if (ov) {
+    new MutationObserver(function () {
+      document.body.classList.toggle('pm-open', ov.classList.contains('open'));
+    }).observe(ov, { attributes: true, attributeFilter: ['class'] });
+  }
+})();
