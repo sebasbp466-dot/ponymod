@@ -1,4 +1,5 @@
 plugins { id 'com.android.application' }
+def run = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
 android {
     namespace 'com.ponymod.app'
     compileSdk 34
@@ -6,8 +7,8 @@ android {
         applicationId 'com.ponymod.app'
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode run
+        versionName "1." + run
     }
     signingConfigs {
         main {
