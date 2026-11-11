@@ -624,3 +624,257 @@ body.pm-snap #pm-stop,body.pm-snap #pm-agst{display:none!important}
     }
   });
 })();
+
+(function () {
+  if (document.getElementById('pm-css7')) return;
+  var mk = document.createElement('meta');
+  mk.id = 'pm-css7';
+  document.head.appendChild(mk);
+  var $ = function (id) { return document.getElementById(id); };
+
+  function skipEl(e) {
+    return e.closest('#pm-ov') || e.id === 'pm-fab' || e.id === 'pm-stop' || e.id === 'pm-agst';
+  }
+
+  window.pmObs = function () {
+    var W = window.innerWidth, H = window.innerHeight;
+    var els = [], lines = [], seen = new Set();
+    window.__pmEls = els;
+
+    function geom(e) {
+      var r = e.getBoundingClientRect();
+      if (r.width < 6 || r.height < 6) return null;
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      if (cx < 0 || cy < 0 || cx > W || cy > H) return null;
+      return { r: r, cx: cx, cy: cy };
+    }
+    function hit(e, g) {
+      var t = document.elementFromPoint(g.cx, g.cy);
+      return !!t && (e === t || e.contains(t) || t.contains(e));
+    }
+    function clean(s, n) {
+      return String(s || '').replace(/[|\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+    }
+    function icon(e) {
+      var src = (typeof e.className === 'string' && e.className.indexOf('fa-') >= 0) ? e : e.querySelector('[class*="fa-"]');
+      if (!src) return '';
+      return Array.prototype.filter.call(src.classList, function (c) {
+        return c.indexOf('fa-') === 0 && ['fa-lg', 'fa-sm', 'fa-fw', 'fa-width-auto'].indexOf(c) < 0;
+      }).join(' ');
+    }
+    function add(e, g) {
+      var id = els.length;
+      els.push(e);
+      var cls = typeof e.className === 'string' ? e.className : (e.getAttribute('class') || '');
+      var on = /(^|\s)(active|selected|checked)(\s|$)/.test(cls) || e.getAttribute('aria-selected') === 'true' || e.checked === true;
+      var isField = /^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName);
+      lines.push([
+        id,
+        e.tagName.toLowerCase(),
+        clean(e.innerText, 28),
+        clean(e.getAttribute('aria-label') || e.title || e.placeholder || e.alt, 24),
+        icon(e),
+        clean(cls.split(/\s+/).slice(0, 3).join(' '), 40),
+        Math.round(g.cx / W * 1000) + ',' + Math.round(g.cy / H * 1000),
+        Math.round(g.r.width / W * 1000) + 'x' + Math.round(g.r.height / H * 1000),
+        (on ? 'sel ' : '') + (e.disabled ? 'dis ' : '') + (isField ? 'val=' + clean(e.value, 12) : '')
+      ].join('|'));
+    }
+
+    var q = document.querySelectorAll('button,a[href],input,select,textarea,[role=button],[role=tab],[role=option],[role=slider],[role=menuitem],[tabindex],label,.btn,canvas,li,img');
+    for (var i = 0; i < q.length && els.length < 150; i++) {
+      var e = q[i];
+      if (skipEl(e) || seen.has(e)) continue;
+      var g = geom(e);
+      if (!g || !hit(e, g)) continue;
+      seen.add(e);
+      add(e, g);
+    }
+
+    var d = document.querySelectorAll('div,span');
+    for (var j = 0; j < d.length && els.length < 190; j++) {
+      var f = d[j];
+      if (seen.has(f) || skipEl(f)) continue;
+      var g2 = geom(f);
+      if (!g2 || g2.r.width > W * 0.9 || !hit(f, g2)) continue;
+      if (getComputedStyle(f).cursor !== 'pointer') continue;
+      var par = f.parentElement;
+      if (par && seen.has(par)) {
+        var pr = par.getBoundingClientRect();
+        if (Math.abs(pr.width - g2.r.width) < 4 && Math.abs(pr.height - g2.r.height) < 4) continue;
+      }
+      seen.add(f);
+      add(f, g2);
+    }
+
+    var sc = document.querySelectorAll('div,ul,section,nav,main');
+    var ns = 0;
+    for (var k = 0; k < sc.length && ns < 8; k++) {
+      var s = sc[k];
+      if (skipEl(s) || s.scrollHeight <= s.clientHeight + 8) continue;
+      var oy = getComputedStyle(s).overflowY;
+      if (oy !== 'auto' && oy !== 'scroll') continue;
+      var g3 = geom(s);
+      if (!g3) continue;
+      var id2 = els.length;
+      els.push(s);
+      ns++;
+      lines.push([
+        id2, 'SCROLLER', '', '', '', '',
+        Math.round(g3.cx / W * 1000) + ',' + Math.round(g3.cy / H * 1000),
+        Math.round(g3.r.width / W * 1000) + 'x' + Math.round(g3.r.height / H * 1000),
+        'max=' + (s.scrollHeight - s.clientHeight) + ' en=' + Math.round(s.scrollTop)
+      ].join('|'));
+    }
+    return 'URL: ' + location.pathname + ' | ventana ' + W + 'x' + H + '\n' + lines.join('\n');
+  };
+
+  window.pmAct = function (acts) {
+    var log = [];
+    function ev(el, n, x, y, down) {
+      var o = { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window, button: 0, buttons: down ? 1 : 0 };
+      if (n.indexOf('pointer') === 0) {
+        o.pointerId = 1; o.pointerType = 'touch'; o.isPrimary = true;
+        el.dispatchEvent(new PointerEvent(n, o));
+      } else {
+        el.dispatchEvent(new MouseEvent(n, o));
+      }
+    }
+    function press(el, x, y) {
+      ev(el, 'pointerdown', x, y, true);
+      ev(el, 'mousedown', x, y, true);
+      ev(el, 'pointerup', x, y, false);
+      ev(el, 'mouseup', x, y, false);
+      ev(el, 'click', x, y, false);
+    }
+    function setVal(e, v) {
+      var p = e.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      var dsc = Object.getOwnPropertyDescriptor(p, 'value');
+      if (dsc && dsc.set) dsc.set.call(e, v); else e.value = v;
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    function keyEv(el, key) {
+      var codes = { Enter: 13, Escape: 27, Tab: 9, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40 };
+      ['keydown', 'keypress', 'keyup'].forEach(function (n) {
+        el.dispatchEvent(new KeyboardEvent(n, { key: key, code: key, keyCode: codes[key] || 0, which: codes[key] || 0, bubbles: true, cancelable: true }));
+      });
+    }
+    function scrollable(el) {
+      while (el && el !== document.body && el !== document.documentElement) {
+        var oy = getComputedStyle(el).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 2) return el;
+        el = el.parentElement;
+      }
+      return document.scrollingElement;
+    }
+    function at(x, y) { return document.elementFromPoint(x / 1000 * innerWidth, y / 1000 * innerHeight); }
+
+    (acts || []).slice(0, 6).forEach(function (a) {
+      try {
+        var e = (a.id != null) ? window.__pmEls[a.id] : null;
+        var t = a.type;
+        if (t === 'click') {
+          if (!e) { log.push('click: el id ' + a.id + ' no existe'); return; }
+          e.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          var r = e.getBoundingClientRect();
+          press(e, r.left + r.width / 2, r.top + r.height / 2);
+        } else if (t === 'tap') {
+          var px = a.x / 1000 * innerWidth, py = a.y / 1000 * innerHeight;
+          var el = document.elementFromPoint(px, py);
+          if (!el) { log.push('tap: no hay nada en (' + a.x + ',' + a.y + ')'); return; }
+          press(el, px, py);
+        } else if (t === 'type') {
+          if (!e) { log.push('type: el id ' + a.id + ' no existe'); return; }
+          e.focus();
+          setVal(e, String(a.text || ''));
+          if (a.enter) keyEv(e, 'Enter');
+        } else if (t === 'select') {
+          if (!e || e.tagName !== 'SELECT') { log.push('select: el id ' + a.id + ' no es un desplegable'); return; }
+          var found = false, want = String(a.text).trim().toLowerCase();
+          for (var i = 0; i < e.options.length; i++) {
+            var op = e.options[i];
+            if (op.text.trim().toLowerCase() === want || op.value === String(a.text)) { e.selectedIndex = i; found = true; break; }
+          }
+          if (!found) { log.push('select: no hay la opción ' + a.text); return; }
+          e.dispatchEvent(new Event('input', { bubbles: true }));
+          e.dispatchEvent(new Event('change', { bubbles: true }));
+        } else if (t === 'key') {
+          keyEv(e || document.activeElement || document.body, String(a.key || 'Enter'));
+        } else if (t === 'scroll') {
+          var s = e ? scrollable(e) : scrollable(at(a.x == null ? 500 : a.x, a.y == null ? 500 : a.y));
+          if (!s) { log.push('scroll: no hay nada desplazable ahí'); return; }
+          s.scrollTop += (a.dy == null ? 300 : a.dy);
+          s.scrollLeft += (a.dx || 0);
+          log.push('scroll: ahora en ' + Math.round(s.scrollTop) + ' de ' + Math.max(0, s.scrollHeight - s.clientHeight));
+        } else if (t === 'drag') {
+          var W = innerWidth, H = innerHeight;
+          var x1 = a.x1 / 1000 * W, y1 = a.y1 / 1000 * H, x2 = a.x2 / 1000 * W, y2 = a.y2 / 1000 * H;
+          var el1 = document.elementFromPoint(x1, y1);
+          if (!el1) { log.push('drag: no hay nada en el inicio'); return; }
+          ev(el1, 'pointerdown', x1, y1, true);
+          ev(el1, 'mousedown', x1, y1, true);
+          for (var n = 1; n <= 8; n++) {
+            var xx = x1 + (x2 - x1) * n / 8, yy = y1 + (y2 - y1) * n / 8;
+            var tg = document.elementFromPoint(xx, yy) || el1;
+            ev(tg, 'pointermove', xx, yy, true);
+            ev(tg, 'mousemove', xx, yy, true);
+          }
+          var te = document.elementFromPoint(x2, y2) || el1;
+          ev(te, 'pointerup', x2, y2, false);
+          ev(te, 'mouseup', x2, y2, false);
+        }
+      } catch (x) { log.push(String(a.type) + ': ' + x.message); }
+    });
+    return log.join('; ');
+  };
+
+  window.pmOpenEditor = function () {
+    function vis(e) { var r = e.getBoundingClientRect(); return r.width > 4 && r.height > 4; }
+    function press(e) {
+      e.scrollIntoView({ block: 'nearest' });
+      var r = e.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+      ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(function (n) {
+        var o = { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window };
+        if (n.indexOf('pointer') === 0) { o.pointerId = 1; o.pointerType = 'touch'; o.isPrimary = true; e.dispatchEvent(new PointerEvent(n, o)); }
+        else e.dispatchEvent(new MouseEvent(n, o));
+      });
+    }
+    function byText(t) {
+      var all = document.querySelectorAll('button,a,li,span,div,[role=menuitem]');
+      for (var i = 0; i < all.length; i++) {
+        var e = all[i];
+        if (e.closest('#pm-ov')) continue;
+        var s = (e.innerText || '').trim().toLowerCase();
+        if (s === t && vis(e) && e.children.length < 3) return e;
+      }
+      return null;
+    }
+    var ce = byText('character editor');
+    if (ce) { press(ce); return 'abrí Character editor'; }
+    var ed = byText('edit');
+    if (ed) { press(ed); return 'toqué edit'; }
+    var gear = document.querySelector('.settings-icon');
+    if (gear && vis(gear)) { press(gear); return 'toqué el engranaje'; }
+    return 'no encontré cómo abrir el editor';
+  };
+
+  var pane = $('pm-k');
+  if (pane) {
+    var db = document.createElement('button');
+    db.className = 'pm-b';
+    db.id = 'pm-kd';
+    db.textContent = 'Copiar lo que ve Gemini (depurar)';
+    db.onclick = function () {
+      window.pmCap(true);
+      setTimeout(function () {
+        var s = '';
+        try { s = window.pmObs(); } catch (e) { s = 'error: ' + e.message; }
+        try { PM.copy(s); } catch (e) { }
+        window.pmCap(false);
+        window.pmSkinBusy('Copiado: ' + s.split('\n').length + ' líneas. Pégalo en el chat.');
+      }, 350);
+    };
+    pane.appendChild(db);
+  }
+})();
