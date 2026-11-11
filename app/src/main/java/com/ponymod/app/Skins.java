@@ -28,8 +28,8 @@ final class Skins {
             + "Si una parte ya es igual, resúmelo en una línea. Si algo no se ve bien, dilo. Responde en español.";
 
     private final MainActivity a;
-    private String target, mine;
-    private Runnable last;
+    String target, mine;
+    Runnable last;
 
     Skins(MainActivity act) { a = act; }
 
@@ -67,7 +67,7 @@ final class Skins {
         }
     }
 
-    private static String encode(Bitmap src) {
+    static String encode(Bitmap src) {
         int max = 1600, w = src.getWidth(), h = src.getHeight();
         float s = Math.min(1f, (float) max / Math.max(w, h));
         Bitmap b = s < 1f ? Bitmap.createScaledBitmap(src, Math.round(w * s), Math.round(h * s), true) : src;
