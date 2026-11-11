@@ -436,3 +436,142 @@ body.pm-snap #pm-stop,body.pm-snap #pm-agst{display:none!important}
     return log.join('; ');
   };
 })();
+
+(function () {
+  if (document.getElementById('pm-css4')) return;
+  var $ = function (id) { return document.getElementById(id); };
+  var pane = $('pm-k');
+  if (!pane) return;
+
+  var st = document.createElement('style');
+  st.id = 'pm-css4';
+  st.textContent = `
+#pm-stop{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2147483002;display:none;
+  padding:10px 18px;border-radius:24px;background:rgba(200,40,40,.55);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.45);
+  color:#fff;font:800 15px system-ui,sans-serif}
+#pm-agst{position:fixed;left:50%;bottom:66px;transform:translateX(-50%);z-index:2147483002;display:none;
+  max-width:86vw;padding:8px 14px;border-radius:16px;background:rgba(18,18,28,.55);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:#fff;
+  font:800 13px system-ui,sans-serif;text-align:center}
+body.pm-run #pm-stop,body.pm-run #pm-agst{display:block}
+body.pm-snap #pm-stop,body.pm-snap #pm-agst{display:none!important}
+#pm-aask{display:none;flex-direction:column;gap:8px;padding:10px;border-radius:16px;background:rgba(255,255,255,.12)}
+`;
+  document.head.appendChild(st);
+
+  var ab = document.createElement('button');
+  ab.className = 'pm-b on';
+  ab.id = 'pm-ag';
+  ab.textContent = 'Gemini hace la skin';
+  pane.insertBefore(ab, $('pm-km').nextSibling);
+
+  var info = document.createElement('div');
+  info.className = 'pm-dim';
+  info.textContent = 'Gemini hace la skin: 1) captura la skin objetivo, 2) abre el Character editor del juego, 3) toca este botón. Gemini hará los clics y te preguntará cuando dude. Hay un botón rojo para pararlo.';
+  pane.insertBefore(info, ab.nextSibling);
+
+  var aask = document.createElement('div');
+  aask.id = 'pm-aask';
+  aask.innerHTML = '<div id="pm-aq"></div><input id="pm-ai" placeholder="Tu respuesta (opcional)">'
+    + '<div style="display:flex;gap:8px"><button class="pm-b" id="pm-ar" style="flex:1">Responder</button>'
+    + '<button class="pm-b" id="pm-as" style="flex:1">Seguir</button></div>';
+  pane.insertBefore(aask, $('pm-kst'));
+
+  var stop = document.createElement('div');
+  stop.id = 'pm-stop';
+  stop.textContent = '■ Parar a Gemini';
+  var agst = document.createElement('div');
+  agst.id = 'pm-agst';
+  document.body.appendChild(agst);
+  document.body.appendChild(stop);
+  ['touchstart', 'touchmove', 'touchend', 'mousedown', 'mouseup', 'pointerdown', 'pointerup'].forEach(function (t) {
+    stop.addEventListener(t, function (e) { e.stopPropagation(); });
+  });
+  stop.addEventListener('click', function () { PM.stopAgent(); });
+
+  ab.onclick = function () { PM.agentStart(); };
+  $('pm-ar').onclick = function () { var v = $('pm-ai').value; $('pm-ai').value = ''; PM.answer(v); };
+  $('pm-as').onclick = function () { $('pm-ai').value = ''; PM.answer(''); };
+
+  window.pmAgentState = function (on) {
+    document.body.classList.toggle('pm-run', !!on);
+    document.body.classList.remove('pm-snap');
+    if (!on) aask.style.display = 'none';
+  };
+  window.pmAgentStatus = function (s) { agst.textContent = s; };
+  window.pmAgentAsk = function (q) { $('pm-aq').textContent = q; aask.style.display = 'flex'; };
+  window.pmAgentAskHide = function () { aask.style.display = 'none'; };
+
+  window.pmObs = function () {
+    var els = [];
+    window.__pmEls = [];
+    var W = window.innerWidth, H = window.innerHeight;
+    var q = document.querySelectorAll('button,a[href],input,select,textarea,[role=button],[role=tab],[role=option],[tabindex],label,.btn,canvas');
+    for (var i = 0; i < q.length && els.length < 160; i++) {
+      var e = q[i];
+      if (e.closest('#pm-ov') || e.id === 'pm-fab' || e.id === 'pm-stop') continue;
+      var r = e.getBoundingClientRect();
+      if (r.width < 6 || r.height < 6) continue;
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      if (cx < 0 || cy < 0 || cx > W || cy > H) continue;
+      var top = document.elementFromPoint(cx, cy);
+      if (!top || !(e === top || e.contains(top) || top.contains(e))) continue;
+      var id = window.__pmEls.length;
+      window.__pmEls.push(e);
+      els.push({
+        id: id,
+        tag: e.tagName.toLowerCase(),
+        text: (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 30),
+        label: e.getAttribute('aria-label') || e.title || e.placeholder || '',
+        type: e.type || '',
+        value: (e.value || '').toString().slice(0, 20),
+        cls: (typeof e.className === 'string' ? e.className : '').split(/\s+/).slice(0, 2).join(' '),
+        cx: Math.round(cx / W * 1000), cy: Math.round(cy / H * 1000),
+        w: Math.round(r.width / W * 1000), h: Math.round(r.height / H * 1000)
+      });
+    }
+    return JSON.stringify(els);
+  };
+
+  window.pmAct = function (acts) {
+    var log = [];
+    function setVal(e, v) {
+      var p = e.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      var d = Object.getOwnPropertyDescriptor(p, 'value');
+      if (d && d.set) d.set.call(e, v); else e.value = v;
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    function tapAt(x, y) {
+      var px = x / 1000 * window.innerWidth, py = y / 1000 * window.innerHeight;
+      var el = document.elementFromPoint(px, py);
+      if (!el) return false;
+      var o = { bubbles: true, cancelable: true, clientX: px, clientY: py, pointerId: 1, pointerType: 'touch', isPrimary: true, view: window };
+      ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(function (n) {
+        el.dispatchEvent(n.indexOf('pointer') === 0 ? new PointerEvent(n, o) : new MouseEvent(n, o));
+      });
+      return true;
+    }
+    (acts || []).slice(0, 6).forEach(function (a) {
+      try {
+        var e = (a.id != null) ? window.__pmEls[a.id] : null;
+        if (a.type === 'click') {
+          if (!e) { log.push('click: el id ' + a.id + ' no existe'); return; }
+          e.click();
+        } else if (a.type === 'tap') {
+          if (!tapAt(a.x, a.y)) log.push('tap: no hay nada en (' + a.x + ',' + a.y + ')');
+        } else if (a.type === 'type') {
+          if (!e) { log.push('type: el id ' + a.id + ' no existe'); return; }
+          e.focus();
+          setVal(e, String(a.text || ''));
+        } else if (a.type === 'scroll') {
+          var s = e;
+          while (s && s.scrollHeight <= s.clientHeight + 2) s = s.parentElement;
+          (s || document.scrollingElement).scrollTop += (a.dy || 300);
+        }
+      } catch (x) { log.push(String(a.type) + ': ' + x.message); }
+    });
+    return log.join('; ');
+  };
+})();
