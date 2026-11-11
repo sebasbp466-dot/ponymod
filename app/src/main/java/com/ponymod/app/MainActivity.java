@@ -199,6 +199,31 @@ public class MainActivity extends Activity {
 
     private class Bridge {
         @JavascriptInterface
+        public void capture(String kind) {
+            if (trusted) runOnUiThread(() -> skins.capture(kind));
+        }
+
+        @JavascriptInterface
+        public void retry() {
+            if (trusted) runOnUiThread(() -> skins.retry());
+        }
+
+        @JavascriptInterface
+        public void agentStart() {
+            if (trusted) runOnUiThread(() -> agent.start());
+        }
+
+        @JavascriptInterface
+        public void answer(String s) {
+            if (trusted) runOnUiThread(() -> agent.answer(s));
+        }
+
+        @JavascriptInterface
+        public void stopAgent() {
+            if (trusted) runOnUiThread(() -> agent.stop());
+        }
+
+        @JavascriptInterface
         public String cfg() {
             JSONObject o = new JSONObject();
             try {
