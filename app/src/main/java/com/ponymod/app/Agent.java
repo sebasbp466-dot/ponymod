@@ -21,6 +21,21 @@ import java.util.ArrayList;
 final class Agent {
     private static final int MAX_STEPS = 80, MAX_LEARN = 50;
 
+    private static final String P_NAV =
+            "CÓMO MOVERTE POR LA LISTA (muy importante): con cada captura recibes un ÍNDICE con TODAS las secciones de la lista actual, con su posición y el rango que se ve ahora, aunque estén más arriba o abajo. "
+            + "Para llegar a una sección usa SIEMPRE goto con el texto de su etiqueta, por ejemplo {\"type\":\"goto\",\"text\":\"Back mane\"}; eso desplaza la lista hasta ella. "
+            + "Para recorrer la lista sin buscar una sección usa scrollpage con dir down, up, top o bottom, por ejemplo {\"type\":\"scrollpage\",\"dir\":\"down\"}. "
+            + "No uses drag ni scroll con números para mover la lista. Después de goto o scrollpage el resultado te dice la posición exacta y si llegaste arriba o abajo del todo; "
+            + "en el siguiente paso tendrás ids nuevos de lo que quedó a la vista, y esos son los que debes usar. "
+            + "Los ids solo existen para lo que se ve en ese paso: si no ves lo que buscas, haz goto y espera al siguiente paso. "
+            + "Envía un goto o scrollpage por respuesta y no lo mezcles con clicks en la misma respuesta, porque los ids cambian. "
+            + "Las pestañas o secciones principales del editor suelen estar al inicio de la lista: haz scrollpage con dir top y busca en el ÍNDICE las líneas botón. "
+            + "EJEMPLO para cambiar un estilo: 1) goto con la etiqueta de la parte; 2) en el siguiente paso, click en la tarjeta tile elegida (compara con el objetivo y con los números dibujados); "
+            + "3) en el siguiente paso verifica que esa tarjeta tenga sel y que la vista previa cambió. "
+            + "EJEMPLO para cambiar un color: 1) goto con la etiqueta de la parte; 2) busca bajo ella la fila de color con el número que quieres; si su campo sale dis o automático, click en Automatic color de esa fila; "
+            + "3) type en el campo HEX con el color y enter true; 4) verifica en la vista previa que cambió. "
+            + "Si una pestaña nueva se abre, la lista empieza arriba: mira el ÍNDICE de nuevo.";
+
     private static final String P_PLAN =
             "Eres experto en el editor de personajes de Pony Town. La imagen es un recorte ampliado del poni OBJETIVO (pixel art). "
             + "Escribe un PLAN para reconstruirlo en el editor. Una línea por parte, con el formato parte: descripción del estilo (forma, largo, tamaño) "
@@ -256,7 +271,7 @@ final class Agent {
     private void think(int g, String els, String cur) {
         js("document.body.classList.remove('pm-snap');pmAgentStatus('Paso " + step + ": Gemini está pensando...')");
         String goal = learnMode ? P_LEARN : P_GOAL + "\nPLAN DE LA SKIN OBJETIVO:\n" + plan;
-        String prompt = P_BASE + "\n" + goal
+        String prompt = P_BASE + "\n" + P_NAV + "\n" + goal
                 + "\nMEMORIA PERMANENTE (lo que ya aprendiste del editor):\n" + (mem.isEmpty() ? "vacía" : TextUtils.join("\n", mem))
                 + "\nNotas de esta sesión: " + (notes.isEmpty() ? "ninguna" : TextUtils.join(" | ", notes))
                 + "\nTus últimos pasos: " + (hist.isEmpty() ? "ninguno" : TextUtils.join(" > ", hist))

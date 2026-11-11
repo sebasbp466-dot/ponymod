@@ -1051,3 +1051,150 @@ body.pm-snap #pm-stop,body.pm-snap #pm-agst{display:none!important}
     $('pm-ts').addEventListener('click', function () { try { ta.value = PM.mem(); } catch (e) { } });
   }
 })();
+
+(function () {
+  if (document.getElementById('pm-css9')) return;
+  var mk = document.createElement('meta');
+  mk.id = 'pm-css9';
+  document.head.appendChild(mk);
+  var $ = function (id) { return document.getElementById(id); };
+
+  function skipEl(e) {
+    return e.closest('#pm-ov') || e.id === 'pm-fab' || e.id === 'pm-stop' || e.id === 'pm-agst';
+  }
+  function clean(s, n) {
+    return String(s || '').replace(/[|\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  }
+
+  function best() {
+    var sc = document.querySelectorAll('div,ul,section,nav,main');
+    var bestEl = null, ba = 0;
+    for (var k = 0; k < sc.length; k++) {
+      var s = sc[k];
+      if (skipEl(s) || s.scrollHeight <= s.clientHeight + 8) continue;
+      var oy = getComputedStyle(s).overflowY;
+      if (oy !== 'auto' && oy !== 'scroll') continue;
+      var r = s.getBoundingClientRect();
+      if (r.width < 50 || r.height < 50 || r.bottom < 0 || r.top > innerHeight) continue;
+      var ar = r.width * r.height;
+      if (ar > ba) { ba = ar; bestEl = s; }
+    }
+    return bestEl;
+  }
+  function setTop(sc, y) {
+    var max = sc.scrollHeight - sc.clientHeight;
+    y = Math.max(0, Math.min(max, y));
+    sc.style.scrollBehavior = 'auto';
+    sc.scrollTop = y;
+  }
+  function state(sc) {
+    var max = Math.max(0, sc.scrollHeight - sc.clientHeight);
+    var y = Math.round(sc.scrollTop);
+    return 'ahora en ' + y + ' de ' + max + (y <= 2 ? ' (arriba del todo)' : (y >= max - 2 ? ' (abajo del todo)' : ''));
+  }
+
+  function nav(a) {
+    var sc = best();
+    if (!sc) return 'no hay lista desplazable en pantalla';
+    if (a.type === 'scrollpage') {
+      var d = String(a.dir || 'down'), h = sc.clientHeight * 0.8, y = sc.scrollTop;
+      if (d === 'top') y = 0;
+      else if (d === 'bottom') y = sc.scrollHeight;
+      else if (d === 'up') y -= h;
+      else y += h;
+      setTop(sc, y);
+      return 'scrollpage ' + d + ': ' + state(sc);
+    }
+    var want = String(a.text || '').trim().toLowerCase();
+    if (!want) return 'goto: falta text';
+    var cands = sc.querySelectorAll('label,button,h1,h2,h3,h4,[aria-label],sprite-selection,.col-form-label');
+    var found = null, i, e, t, al;
+    for (i = 0; i < cands.length && !found; i++) {
+      e = cands[i];
+      t = (e.innerText || '').trim().toLowerCase();
+      al = (e.getAttribute('aria-label') || '').trim().toLowerCase();
+      if (t === want || al === want || al === 'select ' + want) found = e;
+    }
+    for (i = 0; i < cands.length && !found; i++) {
+      e = cands[i];
+      t = ((e.innerText || '') + ' ' + (e.getAttribute('aria-label') || '')).toLowerCase();
+      if (t.indexOf(want) >= 0) found = e;
+    }
+    if (!found) return 'goto: no encontré "' + a.text + '" en la lista (mira el ÍNDICE)';
+    var r = found.getBoundingClientRect(), s = sc.getBoundingClientRect();
+    setTop(sc, sc.scrollTop + (r.top - s.top) - 12);
+    return 'goto ' + a.text + ': ' + state(sc);
+  }
+
+  window.pmIndex = function () {
+    var sc = best();
+    if (!sc) return 'ÍNDICE: no hay lista desplazable visible';
+    var s = sc.getBoundingClientRect(), items = [];
+    sc.querySelectorAll('label,button,h1,h2,h3,h4,sprite-selection,.color-picker-input,.nav-link,[role=tab]').forEach(function (e) {
+      if (skipEl(e)) return;
+      var b = e.getBoundingClientRect();
+      if (b.width < 4 || b.height < 4) return;
+      var y = Math.round(sc.scrollTop + b.top - s.top);
+      var tag = e.tagName.toLowerCase(), txt = clean(e.innerText, 26), al = clean(e.getAttribute('aria-label'), 26);
+      var d = '';
+      if (tag === 'sprite-selection') d = 'estilos: ' + (al || '?') + ' (' + e.querySelectorAll('.selection-item').length + ' tarjetas)';
+      else if (e.classList.contains('color-picker-input')) d = 'campo de color ' + (e.value || '') + (e.disabled ? ' (automático)' : '');
+      else if (tag === 'label') d = txt ? 'etiqueta: ' + txt : '';
+      else if (tag === 'button') d = txt ? 'botón: ' + txt : (al ? 'botón: ' + al : '');
+      else d = txt ? 'título: ' + txt : '';
+      if (d) items.push([y, d]);
+    });
+    items.sort(function (a, b) { return a[0] - b[0]; });
+    var out = [], last = '';
+    items.forEach(function (it) {
+      var line = 'y=' + it[0] + ' ' + it[1];
+      if (it[1] !== last && out.length < 90) out.push(line);
+      last = it[1];
+    });
+    return 'ÍNDICE DE LA LISTA (mide ' + sc.scrollHeight + '; ahora se ve de ' + Math.round(sc.scrollTop) + ' a '
+      + Math.round(sc.scrollTop + sc.clientHeight) + '):\n' + out.join('\n');
+  };
+
+  var baseObs = window.pmObs;
+  window.pmObs = function () {
+    var o = JSON.parse(baseObs());
+    try { o.t += '\n' + window.pmIndex(); } catch (e) { o.t += '\nÍNDICE: error ' + e.message; }
+    return JSON.stringify(o);
+  };
+
+  var baseAct = window.pmAct;
+  window.pmAct = function (acts) {
+    var log = [];
+    (acts || []).slice(0, 6).forEach(function (a) {
+      if (a.type === 'goto' || a.type === 'scrollpage') {
+        try { log.push(nav(a)); } catch (e) { log.push(a.type + ': ' + e.message); }
+      } else {
+        var r = baseAct([a]);
+        if (r) log.push(r);
+      }
+    });
+    return log.join('; ');
+  };
+
+  var pane = $('pm-k');
+  if (pane && !$('pm-sd')) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px';
+    row.innerHTML = '<button class="pm-b" id="pm-sd" style="flex:1">Probar scroll ↓</button>'
+      + '<button class="pm-b" id="pm-su" style="flex:1">Probar scroll ↑</button>';
+    pane.appendChild(row);
+    var test = function (dir) {
+      window.pmCap(true);
+      setTimeout(function () {
+        var r = '';
+        try { r = window.pmAct([{ type: 'scrollpage', dir: dir }]); } catch (e) { r = 'error: ' + e.message; }
+        setTimeout(function () {
+          window.pmCap(false);
+          window.pmSkinBusy(r || 'sin resultado');
+        }, 1500);
+      }, 350);
+    };
+    $('pm-sd').onclick = function () { test('down'); };
+    $('pm-su').onclick = function () { test('up'); };
+  }
+})();
