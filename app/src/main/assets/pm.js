@@ -575,3 +575,38 @@ body.pm-snap #pm-stop,body.pm-snap #pm-agst{display:none!important}
     return log.join('; ');
   };
 })();
+
+(function () {
+  if (document.getElementById('pm-css5')) return;
+  var $ = function (id) { return document.getElementById(id); };
+  var pane = $('pm-k');
+  if (!pane) return;
+  var mk = document.createElement('meta');
+  mk.id = 'pm-css5';
+  document.head.appendChild(mk);
+
+  var img = document.createElement('img');
+  img.id = 'pm-kimg';
+  img.style.cssText = 'display:none;max-height:150px;max-width:100%;align-self:center;border-radius:12px;image-rendering:pixelated;border:1px solid rgba(255,255,255,.3)';
+  pane.insertBefore(img, $('pm-kst'));
+  window.pmSkinPrev = function (src) { img.src = src; img.style.display = 'block'; };
+
+  function call(name, arg) {
+    try {
+      if (typeof PM === 'undefined' || typeof PM[name] !== 'function') {
+        window.pmSkinErr('Este APK no tiene la función ' + name + '. Instala la última versión.');
+        return;
+      }
+      window.pmSkinBusy('Enviando orden: ' + name + '...');
+      if (arg === undefined) PM[name](); else PM[name](arg);
+    } catch (e) {
+      window.pmSkinErr('Error al llamar ' + name + ': ' + e.message);
+    }
+  }
+  $('pm-kc').textContent = 'Elegir skin objetivo';
+  $('pm-km').textContent = 'Elegir mi poni y comparar';
+  $('pm-kc').onclick = function () { call('capture', 'target'); };
+  $('pm-km').onclick = function () { call('capture', 'mine'); };
+  $('pm-kr').onclick = function () { call('retry'); };
+  if ($('pm-ag')) $('pm-ag').onclick = function () { call('agentStart'); };
+})();
