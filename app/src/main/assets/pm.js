@@ -610,3 +610,17 @@ body.pm-snap #pm-stop,body.pm-snap #pm-agst{display:none!important}
   $('pm-kr').onclick = function () { call('retry'); };
   if ($('pm-ag')) $('pm-ag').onclick = function () { call('agentStart'); };
 })();
+
+(function () {
+  if (document.getElementById('pm-css6')) return;
+  var pane = document.getElementById('pm-k');
+  if (!pane) return;
+  var mk = document.createElement('meta');
+  mk.id = 'pm-css6';
+  document.head.appendChild(mk);
+  pane.querySelectorAll('.pm-dim').forEach(function (e) {
+    if ((e.textContent || '').indexOf('Pon al poni') === 0) {
+      e.textContent = 'Dibuja un círculo alrededor del poni. El recuadro se ajusta a lo que rodeaste, se recorta con zoom y se envía a Gemini con tu clave.';
+    }
+  });
+})();

@@ -19,7 +19,7 @@ final class Agent {
 
     private static final String P =
             "Eres un agente que maneja el editor de personajes de Pony Town (juego pixel art con interfaz web) para recrear una skin. "
-            + "Imagen 1 = skin OBJETIVO. Imagen 2 = pantalla actual. Recibes la lista de elementos visibles e interactivos: "
+            + "Imagen 1 = skin OBJETIVO. Imagen 2 = pantalla actual del editor (el poni de la vista previa es MI poni, el que debes modificar). Recibes la lista de elementos visibles e interactivos: "
             + "id, tag, text, label, type, value, cls, cx y cy (centro, escala 0 a 1000 sobre la pantalla), w y h. "
             + "Responde SOLO con un JSON, sin texto extra: "
             + "{\"say\":\"qué haces ahora, corto\",\"note\":\"dato útil para recordar, opcional\",\"ask\":\"pregunta al usuario o vacío\","
