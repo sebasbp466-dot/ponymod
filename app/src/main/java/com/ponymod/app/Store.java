@@ -13,4 +13,6 @@ final class Store {
     void setKey(String k) { p.edit().putString("key", k).apply(); }
     String model() { return p.getString("model", DEF_MODEL); }
     void setModel(String m) { p.edit().putString("model", m).apply(); }
+    String mem() { return p.getString("mem", ""); }
+    void setMem(String m) { p.edit().putString("mem", m).apply(); }
 }

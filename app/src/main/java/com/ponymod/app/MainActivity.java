@@ -199,6 +199,23 @@ public class MainActivity extends Activity {
 
     private class Bridge {
         @JavascriptInterface
+        public String mem() {
+            return store.mem();
+        }
+
+        @JavascriptInterface
+        public void saveMem(String s) {
+            if (!trusted) return;
+            store.setMem(s == null ? "" : s);
+            toast("Guardado");
+        }
+
+        @JavascriptInterface
+        public void agentLearn() {
+            if (trusted) runOnUiThread(() -> agent.learn());
+        }
+
+        @JavascriptInterface
         public void capture(String kind) {
             if (trusted) runOnUiThread(() -> skins.capture(kind));
         }
